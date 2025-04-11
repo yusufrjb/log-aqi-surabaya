@@ -3,7 +3,6 @@ name: Log AQI Surabaya per jam
 on:
   schedule:
     - cron: '*/30 * * * *'  # ini artinya setiap 30 menit
-  workflow_dispatch:        # tetap bisa dijalankan manual juga
 
 jobs:
   log-aqi:
