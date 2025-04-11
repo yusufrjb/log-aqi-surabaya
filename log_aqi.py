@@ -1,34 +1,46 @@
 import requests
-import time
-import os
 import csv
+import os
 from datetime import datetime
 
-API_KEY = os.getenv("API_KEY")
+API_KEY = os.getenv("API_KEY")  # <- dari Secrets GitHub
 CITY = "Surabaya"
 STATE = "East Java"
 COUNTRY = "Indonesia"
+FILENAME = "aqi_surabaya.csv"
 
-def fetch_aqi():
+def get_aqi():
     url = f"http://api.airvisual.com/v2/city?city={CITY}&state={STATE}&country={COUNTRY}&key={API_KEY}"
     response = requests.get(url)
     data = response.json()
-    try:
-        aqi = data['data']['current']['pollution']['aqius']
-        time_now = datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
-        print(f"[{time_now}] AQI: {aqi}")
+    
+    if data.get("status") == "success":
+        pollution = data['data']['current']['pollution']
+        weather = data['data']['current']['weather']
+        return {
+            "timestamp": pollution['ts'],
+            "aqius": pollution['aqius'],
+            "main_pollutant": pollution['mainus'],
+            "temp": weather['tp'],
+            "humidity": weather['hu']
+        }
+    else:
+        print("Gagal ambil data:", data)
+        return None
 
-        file_exists = os.path.isfile("aqi_log.csv")
-        with open("aqi_log.csv", mode="a", newline="") as file:
-            writer = csv.writer(file)
-            if not file_exists:
-                writer.writerow(["timestamp_utc", "aqius"])
-            writer.writerow([time_now, aqi])
-    except KeyError:
-        print("Gagal fetch AQI, respon API tidak sesuai:", data)
+def save_to_csv(data):
+    file_exists = os.path.isfile(FILENAME)
+    with open(FILENAME, mode='a', newline='') as file:
+        writer = csv.DictWriter(file, fieldnames=data.keys())
+        if not file_exists:
+            writer.writeheader()
+        writer.writerow(data)
 
-# Loop setiap 10 menit selama 30 menit
-for _ in range(3):
-    fetch_aqi()
-    if _ < 2:
-        time.sleep(600)  # tunggu 10 menit
+# Eksekusi 1x (untuk dipanggil setiap jam oleh GitHub Actions)
+print(f"[{datetime.now()}] Mengambil data AQI Surabaya...")
+aqi_data = get_aqi()
+if aqi_data:
+    save_to_csv(aqi_data)
+    print("Data berhasil disimpan.")
+else:
+    print("Gagal simpan data.")
