@@ -1,8 +1,8 @@
 import requests
 import csv
 from datetime import datetime
-
-API_KEY = "54a048fc-5295-4849-b28c-b5260e5641e9"  # Ganti dengan API key kamu
+import os
+API_KEY = os.getenv("API_KEY")
 CITY = "Surabaya"
 STATE = "East Java"
 COUNTRY = "Indonesia"
