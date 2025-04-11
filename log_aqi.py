@@ -1,44 +1,34 @@
 import requests
+import time
+import os
 import csv
 from datetime import datetime
-import os
+
 API_KEY = os.getenv("API_KEY")
 CITY = "Surabaya"
 STATE = "East Java"
 COUNTRY = "Indonesia"
-FILENAME = "aqi_log.csv"
 
-def get_aqi():
+def fetch_aqi():
     url = f"http://api.airvisual.com/v2/city?city={CITY}&state={STATE}&country={COUNTRY}&key={API_KEY}"
     response = requests.get(url)
     data = response.json()
-    
-    if data.get("status") == "success":
-        pollution = data['data']['current']['pollution']
-        weather = data['data']['current']['weather']
-        return {
-            "timestamp": pollution['ts'],
-            "aqius": pollution['aqius'],
-            "main_pollutant": pollution['mainus'],
-            "temp": weather['tp'],
-            "humidity": weather['hu']
-        }
-    else:
-        print("Gagal ambil data:", data)
-        return None
-
-def save_to_csv(data):
     try:
-        with open(FILENAME, mode='a', newline='') as file:
-            writer = csv.DictWriter(file, fieldnames=data.keys())
-            if file.tell() == 0:
-                writer.writeheader()
-            writer.writerow(data)
-    except Exception as e:
-        print("Gagal simpan:", e)
+        aqi = data['data']['current']['pollution']['aqius']
+        time_now = datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
+        print(f"[{time_now}] AQI: {aqi}")
 
-if __name__ == "__main__":
-    aqi_data = get_aqi()
-    if aqi_data:
-        save_to_csv(aqi_data)
-        print("Data tersimpan:", aqi_data)
+        file_exists = os.path.isfile("aqi_log.csv")
+        with open("aqi_log.csv", mode="a", newline="") as file:
+            writer = csv.writer(file)
+            if not file_exists:
+                writer.writerow(["timestamp_utc", "aqius"])
+            writer.writerow([time_now, aqi])
+    except KeyError:
+        print("Gagal fetch AQI, respon API tidak sesuai:", data)
+
+# Loop setiap 10 menit selama 30 menit
+for _ in range(3):
+    fetch_aqi()
+    if _ < 2:
+        time.sleep(600)  # tunggu 10 menit
