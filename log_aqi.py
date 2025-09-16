@@ -44,3 +44,27 @@ if aqi_data:
     print("Data berhasil disimpan.")
 else:
     print("Gagal simpan data.")
+
+import requests
+import os
+
+SUPABASE_URL = os.getenv("SUPABASE_URL")
+SUPABASE_KEY = os.getenv("SUPABASE_SERVICE_KEY")
+
+def insert_to_supabase(row):
+    url = f"{SUPABASE_URL}/rest/v1/air_quality"
+    headers = {
+        "apikey": SUPABASE_KEY,
+        "Authorization": f"Bearer {SUPABASE_KEY}",
+        "Content-Type": "application/json"
+    }
+    payload = {
+        "timestamp": row["timestamp"],
+        "aqius": row["aqius"],
+        "main_pollutant": row["main_pollutant"],
+        "temp": row["temp"],
+        "humidity": row["humidity"]
+    }
+    r = requests.post(url, headers=headers, json=payload)
+    print(r.status_code, r.text)
+
